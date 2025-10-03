@@ -27,7 +27,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <div className="bg-amber-700 p-2">
+          <h1 className="text-2xl font-bold">Root Layout</h1>{" "}
+          {/*this sows att every route/pages, very good for navigation links */}
+          {/*personalize the main page */}
+          {children}{" "}
+          {/* children renders only the page we are routin in (the app page we are visiting) */}
+        </div>
       </body>
     </html>
   );
