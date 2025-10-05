@@ -3,12 +3,24 @@
 
 import { ReactNode } from "react";
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default function DashboardLayout({
+  children,
+  analitics,
+  users,
+}: {
+  children: ReactNode;
+  analitics: ReactNode;
+  users: ReactNode; // tipe of the users/page.tsx file
+}) {
   return (
     <div className="bg-green-700 p-2">
       <h1 className="text-2xl font-bold">Dashboard Layout</h1>
-      {children}{" "}
+      {children}
       {/*Remind. children is the page.tsx file inside dashboard folder */}
+      {""}
+      {analitics}
+      {""}
+      {users}
     </div>
   );
 }
