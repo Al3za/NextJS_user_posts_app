@@ -2,6 +2,9 @@
 // file route is empty, without segment/params (http://localhost:3000/file, no error). Otherwise
 // it ll throw an error
 
+// p.s  When we run npm build, this is (Dynamic) server-rendered on demand = SSR (Server-Side Rendering) by default. thats because we have an
+// unknow segment as params
+
 export default async function File({
   params,
 }: {

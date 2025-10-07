@@ -22,7 +22,10 @@ export default function MarketingLayout({
       <nav className="bg-red-800 p-2">
         <ul className="flex gap-4">
           <li>
-            <Link href="/">Home</Link>
+            <Link href="/">Home</Link>{" "}
+            {/*all those link are pre-fetched at build time and are ssg(static)*/}
+            {/* remember to disabilitate the pre-fecth and casching from llink if the link contains dinamic segments
+            like: <Link href={`/posts/${id}`} prefetch={false}>{title}</Link> */}
           </li>
           <li>
             <Link href="/blog">Blog</Link>
@@ -33,10 +36,10 @@ export default function MarketingLayout({
           </li>
           <li>
             <Link href="/login">Login</Link>{" "}
-            {/* renders (auth)/(.)login/page.tsx. thats because that link is inside marketing, and (.)login
+            {/* renders (auth)/(.)login/page.tsx. thats because that link is inside (marketing), and (.)login
             make it possible navigate to this (.)login/page.tsx, and not in (auth)/login.
             but If we navigate in the browser on https:localhost:3000, it will render (auth)/login/page.tsx.
-            (.)login is a sort of private navigation to the page we wanna render defined inside the (group) itself */}
+            (.)login is a sort of personalized navigation to the page we wanna render defined inside the (group)(marketing) itself */}
           </li>
         </ul>
       </nav>
@@ -46,3 +49,8 @@ export default function MarketingLayout({
     </div>
   );
 }
+
+// dopo il build, se andiamo su console, inspektera, network, fetch/xhr, preview
+// vedremo il preview delle pagine statiche generate dai Link, con i nomi delle pagine generate uguali
+// ai nomi dei Link path:
+// (blog?_src=7g69s,dashboard?_src=7g69s,login?_src=7g69s..).
