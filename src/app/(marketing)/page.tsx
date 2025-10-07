@@ -55,17 +55,21 @@ export default async function Home() {
     revalidatePath("/"); //(SSG);  //the route of the page that has to revalidate ("/").
     // we revalidate the path ('/') because the fetch live in this path (the page.tsx in this path, the root page ("/"))
     // revalidatePath() Si può chiamare solo da una Server Action(come questa) o un Route Handler.
-    // rigenera l’intera route(/) e file HTML statico della pagina, non solo i dati del fetch a differenza di revalidateTag.
-    // e come se facessimo il refresh dell intero route(/) (piu' "pesante" di revalidateTag)
+    // rigenera l’intera route(/) e file HTML statico della pagina (/)page.tsx,  a differenza di revalidateTag che rigenera solo i dati del fetch
+    // e' il div tag html che contiene quei dati.
+    // e come se facessimo il refresh dell intero page.tsx della route(/). (piu' "pesante" di revalidateTag, ricrea tutta l HTML della
+    // page.tsx del path descritto. Inoltre refetcha tutti i fetch entro la pagina, non solo quelli definiti dal tag)
   }
 
   // option 2
   async function revalidate2() {
     "use server";
     revalidateTag("word"); // the tag name (word) of the fetch above that has to revalidate.(SSG)
-    // con revalidateTag solo i dati del fetch saranno aggiornati — non l’intera route(/) e HTML.(piu' leggero e efficiente di revalidatePath)
-    // la cache dei dati del fetch viene invalidata, il componente dove si trova il fetch(Home) viene
-    // ricreato nel server, e cosi' viene servita la nuova pagina statica con i nuovi dati del fetch
+    // con revalidateTag solo i dati del fetch con il word saranno aggiornati — non l’intera page.tsx HTML della route(/). (piu' leggero e granulare di revalidatePath)
+    // la cache dei dati del fetch viene invalidata, il componente dove si trova il fetch (la Home page) viene
+    // ricreato nel server, e cosi' viene servita la nuova pagina statica con i nuovi dati del fetch (e poi viene tutto cache in modo da ripetere la procedura).
+    // A livello di html, si puo' pensare che solo il div che ospita i dati del fetch vengono ricreati( <h2 className="text-2xl font-bold"> {words} </h2>), non
+    // a differenza di revalidatePath("/") che rebuild tutto l html della pagina (path("/"),page.tsx (Home))
   }
 
   return (
