@@ -1,76 +1,78 @@
-// ABOUT REVALIDATE ISR METHODS:
-// quando usiamo "export const revalidate = 3600"; e non specifichiamo il revalidate sul fetch, Tutta la
-// pagina viene pre-renderizzata staticamente (SSG) durante il build, e quando il client visita
-// nuovamente la pagina dopo 10 s, si Rigenera l’intero file HTML statico non solo il singolo fetch.
+// now lets try a SSR dynamic rendering of this page
 
-// se invece usiamo revalidate:10 dentro un fetch, durante il build il file resta (SSR), cioe  l html viene renderizzato
-// e servito dal server ogni volta che il cliente visita il file. Pero i dati del fetch vengono cachati e anche qui
-// vengono mostrati i nuovi dati del fetch solo quando sono passati 10 secondi. pero la pagina resta comunque SSR,
-// cioe' l HTML della pagina viene generato da capo ogni volta che visitiamo la pagina. mentre con
-// export const revalidate = 3600; durante la build, la pagina e' statica, anche dopo il revalidate,
-// e quindi viene mostrata molto piu' veloce al cliente dato che viene sempre fornito dal CDN(anche dopo i 10 s del revalidate)
-// e quindi e' piu' veloce per il client rispetto a SSR
+// export const dynamic = "force-dynamic"; (forza il render dinamico. La pagina non verrà pre-renderizzata al build time. ogni volta che un cliente visita la pagina questa verra creata e servita dal server (ssr))
+// se usiamo searchParams props, oppure cookies, oppure headers o cache: "no-cache" nel fetch, non abbiamo bisogno della direttiva export const dynamic = "force-dynamic"; perche di defoult al build time la pagina
+// sara' ssr (pagina dinamica), dato che usiamo props o runtime methods come header o cookies.
+// this directive tells the serve that This page is non cached on build.(we can see the log('home component ran') after the build we refresh the homepage)
+// our home route is now flagged with ƒ (maans dynamic page),. This means that on build, it skip the "full route cach" for this path(/)/page.tsx (the home component
+// everytime the client request that rout, it will be generated a new html in next server, and not a cached version of the page.
+
+// Important. we can still have a dinamic route and cache our fetch request.
+// when we refresh the page in the browser, the page is re-rendered everytime, but the data cache is still the same as the build
+// because of the "data cach" on he fetch
 
 import { revalidatePath, revalidateTag } from "next/cache";
-// this page is now ISR (Incremental Static Regeneration)
-// export const revalidate = 3600; // for all the fetch in this page (SSG)
 
-//  const data = await fetch("https://random-word-api.herokuapp.com/word", {
-//     next: { revalidate: 10 }) //(SSR) for personalized fetch, in case we have different fetch
+export default async function Home({
+  searchParams, // if we use searchParams props, or in our fetch cookies,headers or cache: "no-cache", by default the route is dinamic (ssr by def on build).
+}: // so there is no need to define it at the top of the page with export const dynamic = "force-dynamic", because is clearly a dinamic page
+{
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  // We pass a props that is objet with a key of tipe string, the value of either string or string[] or undefined
+}) {
+  const lang = (await searchParams).lang; // start the app and write the key lang with the desired language you wand the word to be (htpp://localhost:3000?lang=zh) (zh is chinese)
+  // it explans the type describet here: searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  console.log(lang);
+  const data = await fetch(
+    // next use by default memoization for fetch and res on server side. meaning that once data is fetched, if we use the same fetch on another page it ll shows the data we cached on the previus fetch
+    // in client components instead we have to use methods lik SWR to do that
+    `https://random-word-api.vercel.app/api?lang=${lang || "en"}`, // the props make this route ("/") dynamic
+    // "en" is the fallback in case we not acces a language in the browser url
+    {
+      cache: "force-cache", //still cache "data cach", even thoug this page is render for new everytime a user visit it
+      // cache: "no-cache", // dont cache data, reftech on every page request. when use "no-cache" we doon need export const dynamic = "force-dynamic", because this is dinamic by default
+      next: {
+        // revalidate:10, // define here how long the cache should laste berore invalidation
+        tags: ["word"],
+      },
+    }
+  );
 
-// ABOUT THE HOME FUNCTION BELOVE:
-// when we build the page, the fetch will triggered just once and the word will not change,
-// because after the build is now static page, and data will be the same as when we fetched it
-//  when builded the app
-// so after build wee ll see always the same word even when we refresh, because we dont
-// refetch the data, but just show a static page. To resolve that lwts use ISR with different revalidate methods.
-///
+  const data2 = await fetch(
+    `https://random-word-api.vercel.app/api?lang=${lang || "en"}`, // the props make this route ("/") dynamic
+    // "en" is the fallback in case we not acces a language in the browser url
+    {
+      // cache: "force-cache", //still cache "data cach", even thoug this page is render for new everytime a user visit it
+      // cache: "no-cache", // dont cache data, reftech on every page request. when use "no-cache" we doon need export const dynamic = "force-dynamic", because this is dinamic by default
+      next: {
+        // revalidate:10, // define here how long the cache should laste berore invalidation
+        tags: ["word"], // both fetches are using this tag
+      },
+    }
+  );
 
-export default async function Home() {
-  // everytime we refresh the main page we get a different word (in dev mode, not in build)
+  const words = await data.json(); // cached. on refresh the words not changes
+  const words2 = await data2.json(); // no chached. on refresh the word do changes
 
-  // const data = await fetch("https://random-word-api.herokuapp.com/word"); // return random words. use the export const revalidate time = 3600
-
-  // const data = await fetch("https://random-word-api.herokuapp.com/word", {
-  //   next: { revalidate: 10 }, //(ssr) revalidate every 10 sec. This is ssr, meaning
-  // });
-  // because we show the result of the fetch in this page, when revalidate, this file will be refreshed as well
-  // data is cahed by default (data cashe)
-
-  const data = await fetch("https://random-word-api.vercel.app/api", {
-    next: {
-      tags: ["word"], // this tags can be anything. it will help us to revalidate by tags in revalidate2 function
-    },
-  });
-  const words = await data.json();
-  // ricorda di usare un fallback se la fetch fails
-
-  console.log("home component ran"); // this log will be shown when we click on revalidatePath button, but
-  // not when we click on revalidateTag.
+  console.log("home component ran"); // to check if our component runs
 
   // lets create a function that can regenerate route and tag. its another way to restore a page(like  next: { revalidate: 10 }).
   // this func run on the server
   async function revalidate() {
     "use server"; // questa direttiva specifica che “Questo codice deve essere eseguito solo sul server, mai nel browser.”
-    revalidatePath("/"); //(SSG);  //the route of the page that has to revalidate ("/").
-    // we revalidate the path ('/') because the fetch live in this path (the page.tsx in this path, the root page ("/"))
-    // revalidatePath() Si può chiamare solo da una Server Action(come questa) o un Route Handler.
-    // rigenera l’intera route(/) e file HTML statico della pagina, non solo i dati del fetch a differenza di revalidateTag.
-    // e come se facessimo il refresh dell intero route(/) (piu' "pesante" di revalidateTag)
+    revalidatePath("/");
   }
 
   // option 2
   async function revalidate2() {
     "use server";
-    revalidateTag("word"); // the tag name (word) of the fetch above that has to revalidate.(SSG)
-    // con revalidateTag solo i dati del fetch saranno aggiornati — non l’intera route(/) e HTML.(piu' leggero e efficiente di revalidatePath)
-    // la cache dei dati del fetch viene invalidata, il componente dove si trova il fetch(Home) viene
-    // ricreato nel server, e cosi' viene servita la nuova pagina statica con i nuovi dati del fetch
+    revalidateTag("word");
   }
 
   return (
     <div className="flex flex-col items-center justify-center bg-gray-600 p-4 m-4">
       <h2 className="text-2xl font-bold"> {words} </h2>
+      <h2 className="text-2xl font-bold"> {words2} </h2>
       <button onClick={revalidate}>Revalidate Path</button>
       {/* onclick funzione anche senza la direttiva "use client" perche chiamiamo una server component*/}
       {/* se ci fosse stata una connessione col browser non avrebbe funzionato (tipo un console.log) */}
